@@ -1,0 +1,332 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#05080d">
+<title>ROOT SHADOW TOOLS</title>
+<style>
+:root {
+  --bg:#05080d; --panel:#0a121c; --cyan:#00eaff;
+  --green:#00ffa3; --text:#d8faff; --muted:#7995a4;
+  --border:#153440; --yellow:#ffd166;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font:14px Consolas,Monaco,monospace;
+}
+header {
+  padding:36px 15px 25px; text-align:center;
+  background:radial-gradient(ellipse at top,#103542 0%,var(--bg) 72%);
+  border-bottom:1px solid var(--border);
+}
+h1 {
+  color:var(--cyan); font-size:clamp(25px,6vw,42px);
+  overflow-wrap:anywhere; margin:0;
+  text-shadow:0 0 18px #00eaff40;
+}
+.tag { color:var(--green); letter-spacing:4px; margin-top:12px; }
+.status { color:var(--muted); margin-top:20px; font-size:11px; }
+main { width:min(100%,1000px); padding:20px; margin:auto; }
+h2 { color:var(--cyan); font-size:15px; margin:22px 0 13px; }
+.panel,.terminal,.tool {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:7px;
+}
+.panel { padding:16px; }
+label { display:block; color:var(--muted); margin-bottom:9px; }
+input,select {
+  display:block; width:100%; padding:13px; margin-bottom:12px;
+  color:var(--green); background:#030609;
+  border:1px solid var(--border); border-radius:5px;
+  font:inherit;
+}
+button { font:inherit; }
+.action {
+  background:#09222b; color:var(--cyan); border:1px solid #126071;
+  border-radius:5px; padding:12px 15px; cursor:pointer;
+}
+.action:disabled { opacity:.5; cursor:wait; }
+.grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:12px;
+}
+.tool {
+  padding:16px; color:var(--text); text-align:left; cursor:pointer;
+  min-height:100px; transition:border-color .15s;
+}
+.tool:hover,.tool:focus-visible { border-color:var(--cyan); }
+.tool strong { display:block; color:var(--cyan); margin-bottom:10px; }
+.tool small { color:var(--muted); line-height:1.6; }
+.terminal { margin-top:22px; overflow:hidden; }
+.termhead {
+  padding:13px; border-bottom:1px solid var(--border); color:var(--cyan);
+}
+#output {
+  padding:17px; min-height:145px; white-space:pre-wrap;
+  overflow-wrap:anywhere; line-height:1.9;
+}
+.green { color:var(--green); }
+.cyan { color:var(--cyan); }
+.yellow { color:var(--yellow); }
+.muted { color:var(--muted); }
+footer { text-align:center; padding:28px 10px; color:var(--muted); font-size:11px; }
+a { color:var(--cyan); }
+</style>
+</head>
+<body>
+<header>
+  <h1>ROOT SHADOW TOOLS</h1>
+  <div class="tag">CYBER SECURITY LAB</div>
+  <div class="status">● WEB INTERFACE / PUBLIC DATA TOOLS</div>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>// RECHERCHE</h2>
+    <label for="target">Adresse IP ou nom de domaine</label>
+    <input id="target" placeholder="Ex : 8.8.8.8 ou example.com"
+      autocomplete="off" spellcheck="false">
+    <button class="action" id="clear">EFFACER LE TERMINAL</button>
+  </section>
+
+  <h2>// NETWORK TOOLS</h2>
+  <section class="grid">
+    <button class="tool" data-tool="publicIp">
+      <strong>01 / PUBLIC IP</strong>
+      <small>Consulter l'adresse IP publique de ta connexion.</small>
+    </button>
+    <button class="tool" data-tool="ipLookup">
+      <strong>02 / IP LOOKUP</strong>
+      <small>Pays, région, ville approximative et organisation d'une IP.</small>
+    </button>
+    <button class="tool" data-tool="dnsLookup">
+      <strong>03 / DNS LOOKUP</strong>
+      <small>Rechercher les enregistrements DNS d'un domaine.</small>
+    </button>
+    <button class="tool" data-tool="security">
+      <strong>04 / SECURITY CHECK</strong>
+      <small>Checklist pour auditer un site que tu es autorisé à tester.</small>
+    </button>
+    <button class="tool" data-tool="osint">
+      <strong>05 / PUBLIC OSINT</strong>
+      <small>Préparer une recherche sur des sources publiques légitimes.</small>
+    </button>
+    <button class="tool" data-tool="api">
+      <strong>06 / API CONNECTOR</strong>
+      <small>Informations sur la prochaine étape d'intégration serveur.</small>
+    </button>
+  </section>
+
+  <section class="terminal" aria-live="polite">
+    <div class="termhead">root@shadow:~# <span id="module">READY</span></div>
+    <div id="output"><span class="green">[OK]</span> ROOT SHADOW TOOLS est prêt.
+<span class="muted">Sélectionne un outil pour commencer.</span></div>
+  </section>
+</main>
+
+<footer>ROOT SHADOW TOOLS · CYBER SECURITY LAB · 2026</footer>
+
+<script>
+"use strict";
+
+const target = document.getElementById("target");
+const output = document.getElementById("output");
+const moduleLabel = document.getElementById("module");
+
+function render(title, lines) {
+  moduleLabel.textContent = title;
+  output.replaceChildren();
+
+  lines.forEach((line, index) => {
+    if (index) output.appendChild(document.createTextNode("\n"));
+    const span = document.createElement("span");
+    span.className = line.type || "muted";
+    span.textContent = line.text;
+    output.appendChild(span);
+  });
+}
+
+async function requestJSON(url) {
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" }
+  });
+  if (!response.ok) throw new Error("HTTP " + response.status);
+  return response.json();
+}
+
+function reportError(error) {
+  render("ERROR", [
+    {text:"[ERREUR] " + error.message, type:"yellow"},
+    {text:"Le service peut être indisponible ou limiter les requêtes."}
+  ]);
+}
+
+async function publicIp() {
+  render("PUBLIC IP", [
+    {text:"[INFO] Recherche de l'adresse publique...",type:"cyan"}
+  ]);
+  try {
+    const data = await requestJSON("https://api.ipify.org?format=json");
+    render("PUBLIC IP", [
+      {text:"[OK] Adresse IP publique :",type:"green"},
+      {text:data.ip,type:"cyan"},
+      {text:"Le service externe reçoit cette requête."}
+    ]);
+  } catch (error) { reportError(error); }
+}
+
+function isIPv4(value) {
+  const parts = value.split(".");
+  return parts.length === 4 && parts.every(part =>
+    /^\d{1,3}$/.test(part) && Number(part) <= 255
+  );
+}
+
+function isIPv6(value) {
+  return value.includes(":") &&
+    /^[0-9a-f:]+$/i.test(value) &&
+    value.length <= 39;
+}
+
+async function ipLookup() {
+  const ip = target.value.trim();
+  if (!isIPv4(ip) && !isIPv6(ip)) {
+    render("IP LOOKUP", [
+      {text:"[ERREUR] Entre une adresse IPv4 ou IPv6 valide.",type:"yellow"}
+    ]);
+    return;
+  }
+
+  render("IP LOOKUP", [
+    {text:"[INFO] Consultation des informations publiques...",type:"cyan"}
+  ]);
+
+  try {
+    const data = await requestJSON(
+      "https://ipapi.co/" + encodeURIComponent(ip) + "/json/"
+    );
+    if (data.error) throw new Error(data.reason || "IP non disponible");
+
+    const fields = [
+      ["Adresse IP",data.ip],
+      ["Pays",data.country_name],
+      ["Région",data.region],
+      ["Ville approximative",data.city],
+      ["Organisation",data.org],
+      ["Fuseau horaire",data.timezone]
+    ];
+    render("IP LOOKUP", [
+      {text:"[OK] Réponse du fournisseur",type:"green"},
+      ...fields.filter(([,value]) => value).map(([key,value]) => ({
+        text:key + " : " + value,type:"cyan"
+      })),
+      {text:"La localisation est approximative et peut être inexacte."}
+    ]);
+  } catch (error) { reportError(error); }
+}
+
+async function dnsLookup() {
+  let domain = target.value.trim().replace(/^https?:\/\//i,"");
+  domain = domain.split("/")[0].replace(/\.$/,"");
+
+  if (
+    !domain || domain.length > 253 ||
+    !domain.includes(".") ||
+    !/^[a-z0-9.-]+$/i.test(domain) ||
+    domain.split(".").some(label =>
+      !label || label.length > 63 ||
+      label.startsWith("-") || label.endsWith("-")
+    )
+  ) {
+    render("DNS LOOKUP", [
+      {text:"[ERREUR] Entre un nom de domaine valide.",type:"yellow"}
+    ]);
+    return;
+  }
+
+  render("DNS LOOKUP", [
+    {text:"[INFO] Interrogation du DNS public...",type:"cyan"}
+  ]);
+
+  try {
+    const url = new URL("https://dns.google/resolve");
+    url.searchParams.set("name",domain);
+    url.searchParams.set("type","A");
+    const data = await requestJSON(url.toString());
+    const records = data.Answer || [];
+
+    render("DNS LOOKUP", [
+      {text:"[OK] Domaine : " + domain,type:"green"},
+      {text:"Statut DNS : " + data.Status,type:"cyan"},
+      ...(records.length
+        ? records.map(record => ({
+            text:record.name + " → " + record.data,type:"cyan"
+          }))
+        : [{text:"Aucun enregistrement IPv4 retourné."}])
+    ]);
+  } catch (error) { reportError(error); }
+}
+
+function securityCheck() {
+  render("SECURITY CHECK", [
+    {text:"[AUDIT] Liste de vérification",type:"cyan"},
+    {text:"[ ] HTTPS et certificat TLS"},
+    {text:"[ ] Authentification et contrôle d'accès"},
+    {text:"[ ] Validation des entrées"},
+    {text:"[ ] En-têtes de sécurité"},
+    {text:"[ ] Limitation des requêtes"},
+    {text:"Cette checklist n'est pas un scan automatique."}
+  ]);
+}
+
+function publicOsint() {
+  render("PUBLIC OSINT", [
+    {text:"[INFO] Recherche en sources publiques",type:"cyan"},
+    {text:"Utilise des données publiques et respecte la vie privée."},
+    {text:"Aucun accès à un compte privé n'est effectué."},
+    {text:"Aucun profil ni résultat n'est inventé."}
+  ]);
+}
+
+function apiConnector() {
+  render("API CONNECTOR", [
+    {text:"[INFO] Étape d'intégration",type:"cyan"},
+    {text:"Pour les clés privées, configure un backend sécurisé."},
+    {text:"GitHub Pages héberge le front-end, pas le serveur API."},
+    {text:"Un Cloudflare Worker peut conserver les secrets côté serveur."}
+  ]);
+}
+
+const tools = {
+  publicIp,
+  ipLookup,
+  dnsLookup,
+  security: securityCheck,
+  osint: publicOsint,
+  api: apiConnector
+};
+
+document.querySelectorAll("[data-tool]").forEach(button => {
+  button.addEventListener("click", () => {
+    const action = tools[button.dataset.tool];
+    if (action) action();
+  });
+});
+
+document.getElementById("clear").addEventListener("click", () => {
+  target.value = "";
+  render("READY", [
+    {text:"[OK] Terminal effacé.",type:"green"}
+  ]);
+});
+
+render("READY", [
+  {text:"[OK] ROOT SHADOW TOOLS est prêt.",type:"green"},
+  {text:"Sélectionne un outil pour commencer."}
+]);
+</script>
+</body>
+</html>
